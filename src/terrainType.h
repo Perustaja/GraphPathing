@@ -2,8 +2,7 @@
 #include <iostream>
 #include <string>
 
-enum class terrainType
-{
+enum class terrainType {
 	Grass,
 	Road,
 	Water

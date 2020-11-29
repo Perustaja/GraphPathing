@@ -10,6 +10,13 @@ using std::cin; using std::cout;
 using std::endl; using std::string;
 using std::vector; using std::pair;
 
+presentationWrapper::presentationWrapper(graphConfig gc, vehicleConfig vc) {
+	// Arrange configuration of internal graph and instantiate
+	vehicle v(vc);
+	graph map(gc, v);
+	g = map;
+}
+
 void presentationWrapper::run() {
 	g.display();
 	string input;
@@ -45,8 +52,8 @@ void presentationWrapper::displayMenu() {
 
 
 bool presentationWrapper::areValidCoords(int x, int y) const {
-	if (x >= 0 && x < g.WIDTH)
-		if (y >= 0 && y < g.HEIGHT)
+	if (x >= 0 && x < g.width)
+		if (y >= 0 && y < g.height)
 			return true;
 	return false;
 }

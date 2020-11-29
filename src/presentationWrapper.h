@@ -1,5 +1,6 @@
 #pragma once
 #include "graph.h"
+#include "config.h"
 #include <string>
 #include <utility>
 
@@ -7,7 +8,7 @@
 class presentationWrapper
 {
 public:
-	presentationWrapper() : g() {};
+	presentationWrapper(graphConfig gc, vehicleConfig vc);
 	// Contains main code for controlling session by displaying content and taking input.
 	void run();
 private:
@@ -22,4 +23,3 @@ private:
 	std::pair<int, int> parseCoordinateString(const std::string& s) const;
 	graph g;
 };
-

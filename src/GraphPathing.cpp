@@ -1,8 +1,12 @@
-#include <iostream>
+#include "config.h"
 #include "presentationWrapper.h"
+#include "vehicle.h"
 
 int main()
 {
-	presentationWrapper p;
+	// Arrange configuration structs and pass to wrapper
+	graphConfig gc;
+	vehicleConfig vc;
+	presentationWrapper p(gc, vc);
 	p.run();
 }

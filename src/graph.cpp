@@ -1,4 +1,3 @@
-#include "constants.h"
 #include "graph.h"
 #include "vertice.h"
 #include "terrainType.h"
@@ -10,13 +9,11 @@
 #include <queue>
 #include <vector>
 
-using namespace graphConstants;
-using namespace vehicleConstants;
 using std::cout; using std::pair;
 using std::endl; using std::queue;
 using std::vector; 
 
-graph::graph() {
+graph::graph(graphConfig gc, vehicle v) : width(gc.width), height(gc.height), lakeCount(gc.lakeCount), lakeLength(gc.lakeLength), veh(v) {
 	initialize();
 }
 
@@ -37,7 +34,7 @@ void graph::display(){
 				cout << "   ";
 			else
 				cout << "  ";
-			cout << (arr[i][j].isOccupied() ? "\033[1;31mV\033[0m" : toString(arr[i][j].terrain));
+			cout << ((i == vehicleX && j == vehicleY) ? "\033[1;31mV\033[0m" : toString(matrix[i][j].terrain));
 		}
 	}
 	cout << endl;
@@ -50,7 +47,7 @@ void graph::regenerate() {
 moveResult graph::moveVehicle(const pair<int, int>& moveCoord) {
 	queue<vector<pair<int, int>>> q;
 	vector<pair<int, int>> path{{vehicleX, vehicleY}};
-	bool visited[WIDTH][HEIGHT] {};
+	vector<vector<bool>> visited {};
 	visited[vehicleX][vehicleY] = true;
 	bool reached = false;
 	int dx[] = {-1,1,0,0,-1,-1,1,1}; // Direction vectors for generating neighbors
@@ -97,7 +94,7 @@ moveResult graph::moveVehicle(const pair<int, int>& moveCoord) {
 bool graph::isValidPath(int x, int y) const {
 	if (x >= 0 && x < width)
 		if (y >= 0 && y < height)
-			return arr[x][y].terrain != terrainType::Water;
+			return matrix[x][y].terrain != terrainType::Water;
 	return false;
 }
 
@@ -108,13 +105,11 @@ void graph::initialize() {
 	// Create graph with default vertices
 	for (int i = 0; i < width; i++) {
 		for (int j = 0; j < height; j++) {
-			arr[i][j] = vertice(terrainType::Grass);
+			matrix[i][j] = vertice(terrainType::Grass);
 		}
 	}
 	addLakes();
 	addRoads();
-	vehicle v;
-	arr[0][0].setVehicle(v);
 }
 
 void graph::addRoads() {
@@ -123,7 +118,7 @@ void graph::addRoads() {
 	int i = rand() % height; // Create random number between 0 and height
 	int j = 0;
 	while (i > -1 && i < height && j < width) {
-		arr[i][j].terrain = terrainType::Road;
+		matrix[i][j].terrain = terrainType::Road;
 		int ran = rand() % 4; // Create random number between 0 and 4
 		if (ran < 2)
 			i--;
@@ -135,7 +130,7 @@ void graph::addRoads() {
 	i = 0;
 	j = rand() % width;
 	while (j > -1 && j < width && i < height) {
-		arr[i][j].terrain = terrainType::Road;
+		matrix[i][j].terrain = terrainType::Road;
 		int ran = rand() % 4;
 		if (ran < 2)
 			j--;
@@ -147,12 +142,12 @@ void graph::addRoads() {
 
 void graph::addLakes() {
 	int lakes = 0;
-	while (lakes < graphConstants::LAKE_LENGTH) {
+	while (lakes < lakeLength) {
 		int y = rand() % height;
 		int x = rand() % width;
-		for (int i = y; i > -1 && i > y - graphConstants::LAKE_LENGTH; i--)
-			for (int j = x; j < width && j < x + graphConstants::LAKE_LENGTH; j++)
-				arr[i][j].terrain = terrainType::Water;
+		for (int i = y; i > -1 && i > y - lakeLength; i--)
+			for (int j = x; j < width && j < x + lakeLength; j++)
+				matrix[i][j].terrain = terrainType::Water;
 		lakes++;
 	}
 }
@@ -160,10 +155,10 @@ void graph::addLakes() {
 pathResult graph::calculatePathResult(const std::vector<std::pair<int, int>>& path) const {
 	pathResult r;
 	for (int i = 0; i < path.size(); i++) {
-		r.distanceInKm += GRID_SIZE_KM;
-		switch (arr[path[i].first][path[i].second].terrain) {
-			case terrainType::Road: r.timeInH += GRID_SIZE_KM / VEH_ROAD_SPEED_KMH * 60; break;
-			case terrainType::Grass: r.timeInH += GRID_SIZE_KM / VEH_GRASS_SPEED_KMH * 60; break;
+		r.distanceInKm += gridSizeKm;
+		switch (matrix[path[i].first][path[i].second].terrain) {
+			case terrainType::Road: r.timeInH += gridSizeKm / veh.roadkmph * 60; break;
+			case terrainType::Grass: r.timeInH += gridSizeKm / veh.grasskmph * 60; break;
 			default: break; // do nothing
 	}
 	return r;

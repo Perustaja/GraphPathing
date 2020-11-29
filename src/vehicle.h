@@ -1,8 +1,11 @@
 #pragma once
+#include "config.h"
+
 class vehicle
 {
 public:
-	vehicle(int kmph_ = 60, int kmpl_ = 7): kmph(kmph_), kmpl(kmpl_) {}
-	int kmph;
+	vehicle(vehicleConfig vc) : grasskmph(vc.grasskmph), roadkmph(vc.roadkmph), kmpl(vc.kmpl) {};
+	int grasskmph;
+	int roadkmph;
 	int kmpl;
 };
