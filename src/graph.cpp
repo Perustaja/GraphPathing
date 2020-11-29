@@ -157,9 +157,10 @@ pathResult graph::calculatePathResult(const std::vector<std::pair<int, int>>& pa
 	for (int i = 0; i < path.size(); i++) {
 		r.distanceInKm += gridSizeKm;
 		switch (matrix[path[i].first][path[i].second].terrain) {
-			case terrainType::Road: r.timeInH += gridSizeKm / veh.roadkmph * 60; break;
-			case terrainType::Grass: r.timeInH += gridSizeKm / veh.grasskmph * 60; break;
-			default: break; // do nothing
+		case terrainType::Road: r.timeInH += gridSizeKm / veh.roadkmph * 60; break;
+		case terrainType::Grass: r.timeInH += gridSizeKm / veh.grasskmph * 60; break;
+		default: break; // do nothing
+		}
+		return r;
 	}
-	return r;
 }
