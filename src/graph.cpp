@@ -8,12 +8,13 @@
 #include <stdlib.h>
 #include <queue>
 #include <vector>
+#include <stdexcept>
 
 using std::cout; using std::pair;
 using std::endl; using std::queue;
-using std::vector; 
+using std::vector; using std::exception;
 
-graph::graph(graphConfig gc, vehicle v) : width(gc.width), height(gc.height), lakeCount(gc.lakeCount), lakeLength(gc.lakeLength), veh(v) {
+graph::graph(graphConfig gc, vehicle v) : width(gc.width), height(gc.height), lakeCount(gc.lakeCount), lakeLength(gc.lakeLength), gridSizeKm(gc.gridSizeKm), veh(v) {
 	initialize();
 }
 
@@ -23,18 +24,18 @@ void graph::display(){
 	cout << "\n  ";
 	for (int i = 0; i < width; i++)
 		cout << "  " << i;
-	for (int i = 0; i < height; i++) {
+	for (int r = 0; r < height; r++) {
 		cout << "\n";
-		if (i > 9)
-			cout << i;
+		if (r > 9)
+			cout << r;
 		else
-			cout << " " << i;
-		for (int j = 0; j < width; j++) {
-			if (j > 10)
+			cout << " " << r;
+		for (int c = 0; c < width; c++) {
+			if (c > 10)
 				cout << "   ";
 			else
 				cout << "  ";
-			cout << ((i == vehicleX && j == vehicleY) ? "\033[1;31mV\033[0m" : toString(matrix[i][j].terrain));
+			cout << ((r == vehicleRow && c == vehicleCol) ? "\033[1;31mV\033[0m" : toString(matrix[r][c].terrain));
 		}
 	}
 	cout << endl;
@@ -45,17 +46,20 @@ void graph::regenerate() {
 }
 
 moveResult graph::moveVehicle(const pair<int, int>& moveCoord) {
+	// Note: coordinate pair format is {row, col}
+	if (moveCoord.first == vehicleRow && moveCoord.second == vehicleCol)
+		return moveResult::failed("Vehicle is already at desired coordinate.");
+
 	queue<vector<pair<int, int>>> q;
-	vector<pair<int, int>> path{{vehicleX, vehicleY}};
-	vector<vector<bool>> visited {};
-	visited[vehicleX][vehicleY] = true;
+	vector<pair<int, int>> path {{vehicleRow, vehicleCol}};
+	vector<vector<bool>> visited(height, vector<bool>(width, false));
+	visited[vehicleRow][vehicleCol] = true;
 	bool reached = false;
-	int dx[] = {-1,1,0,0,-1,-1,1,1}; // Direction vectors for generating neighbors
-	int dy[] = {0,0,1,-1,-1,1,1,-1};
+	int dr[] = {-1,1,0,0,-1,-1,1,1}; // Direction vectors for generating neighbors
+	int dc[] = {0,0,1,-1,-1,1,1,-1};
 
 	vector<pair<int, int>> bestPath;
-	pathResult bestPathR;
-
+	pathResult bestPathRes { 0, 0, 0 };
 
 	q.push(path);
 	while (!q.empty()) {
@@ -63,51 +67,48 @@ moveResult graph::moveVehicle(const pair<int, int>& moveCoord) {
 		q.pop();
 		if (path[path.size() - 1] == moveCoord) {
 			reached = true;
-			// Check if path is best path
+			// Check if path is best path and update variables
 			pathResult res = calculatePathResult(path);
-			if (res.timeInH < bestPathR.timeInH) {
+			if (bestPathRes.timeInH == 0 || res.timeInH < bestPathRes.timeInH) {
 				bestPath = path;
-				bestPathR = res;
+				bestPathRes = res;
 			}
 		}
 		// Use vector addition to add neighbor coordinates
 		for (int i = 0; i < 8; i++) {
-			int x = path[path.size() - 1].first + dx[i];
-			int y = path[path.size() - 1].second + dy[i];
-			if (isValidPath(x, y) && !visited[x][y]) {
+			int r = path[path.size() - 1].first + dr[i];
+			int c = path[path.size() - 1].second + dc[i];
+			if (isValidPath(r, c) && !visited[r][c]) {
 				vector<pair<int, int>> newPath(path);
-				newPath.push_back({x, y});
+				newPath.push_back({r, c});
 				q.push(newPath);
-				visited[x][y] = true;
+				visited[r][c] = true;
 			}
 		}
 	}
 
 	if (reached) {
-		// TODO: Update vehicle location
-		// Perform shortest path calculation based on vehicle and terrain
-		return moveResult::successful(path);
+		// Update vehicle variables
+		vehicleRow = moveCoord.first;
+		vehicleCol = moveCoord.second;
+		return moveResult::successful(bestPath, bestPathRes, matrix);
 	}
-	return moveResult::failure("Unable to reach destination. Destination may be water or blocked by water.");
+	return moveResult::failed("Unable to reach destination. Destination may be water or blocked by water.");
 }
 
-bool graph::isValidPath(int x, int y) const {
-	if (x >= 0 && x < width)
-		if (y >= 0 && y < height)
-			return matrix[x][y].terrain != terrainType::Water;
+bool graph::isValidPath(int row, int col) const {
+	if (row >= 0 && row < height)
+		if (col >= 0 && col < width)
+			return matrix[row][col].terrain != terrainType::Water;
 	return false;
 }
 
 void graph::initialize() {
 	// Initialize random seed used for roads and lakes
-	srand(time(NULL));
-
-	// Create graph with default vertices
-	for (int i = 0; i < width; i++) {
-		for (int j = 0; j < height; j++) {
-			matrix[i][j] = vertice(terrainType::Grass);
-		}
-	}
+	srand((unsigned int)time(NULL));
+	
+	// Create matrix with default vertices
+	matrix = vector<vector<vertice>>(height, vector<vertice>(width, vertice(terrainType::Grass)));
 	addLakes();
 	addRoads();
 }
@@ -115,52 +116,54 @@ void graph::initialize() {
 void graph::addRoads() {
 	// Add a random horizontal-start road starting from (0, random y coordinate)
 	// Has a bias for the road to travel vertically as opposed to straight horizontal
-	int i = rand() % height; // Create random number between 0 and height
-	int j = 0;
-	while (i > -1 && i < height && j < width) {
-		matrix[i][j].terrain = terrainType::Road;
+	int r = rand() % height; // Create random number between 0 and height
+	int c = 0;
+	while (r > -1 && r < height && c < width) {
+		matrix[r][c].terrain = terrainType::Road;
 		int ran = rand() % 4; // Create random number between 0 and 4
 		if (ran < 2)
-			i--;
+			r--;
 		else if (ran < 4)
-			i++;
-		j++;
+			r++;
+		c++;
 	}
 	// Same approach, but vertically
-	i = 0;
-	j = rand() % width;
-	while (j > -1 && j < width && i < height) {
-		matrix[i][j].terrain = terrainType::Road;
+	r = 0;
+	c = rand() % width;
+	while (c > -1 && c < width && r < height) {
+		matrix[r][c].terrain = terrainType::Road;
 		int ran = rand() % 4;
 		if (ran < 2)
-			j--;
+			c--;
 		else if (ran < 4)
-			j++;
-		i++;
+			c++;
+		r++;
 	}
 }
 
 void graph::addLakes() {
 	int lakes = 0;
 	while (lakes < lakeLength) {
-		int y = rand() % height;
-		int x = rand() % width;
-		for (int i = y; i > -1 && i > y - lakeLength; i--)
-			for (int j = x; j < width && j < x + lakeLength; j++)
-				matrix[i][j].terrain = terrainType::Water;
+		int h = rand() % height;
+		int w = rand() % width;
+		for (int r = h; r > -1 && r > h - lakeLength; r--)
+			for (int c = w; c < width && c < w + lakeLength; c++)
+				matrix[r][c].terrain = terrainType::Water;
 		lakes++;
 	}
 }
 
 pathResult graph::calculatePathResult(const std::vector<std::pair<int, int>>& path) const {
-	pathResult r;
-	for (int i = 0; i < path.size(); i++) {
-		r.distanceInKm += gridSizeKm;
+	pathResult res {0, 0};
+	// For sake of simplicity, just act as though starting and ending points were traversed fully as well
+	for (int i = 0; i < path.size() - 1; i++) {
+		res.distanceInKm += gridSizeKm;
 		switch (matrix[path[i].first][path[i].second].terrain) {
-		case terrainType::Road: r.timeInH += gridSizeKm / veh.roadkmph * 60; break;
-		case terrainType::Grass: r.timeInH += gridSizeKm / veh.grasskmph * 60; break;
-		default: break; // do nothing
+			case terrainType::Road: res.timeInH += (double) gridSizeKm / veh.roadkmph; break;
+			case terrainType::Grass: res.timeInH += (double) gridSizeKm / veh.grasskmph; break;
+			default: throw exception("Path trace contained coordinates with invalid terrain type.");
 		}
-		return r;
 	}
+	res.fuelUsedInL = res.distanceInKm / veh.kmpl;
+	return res;
 }

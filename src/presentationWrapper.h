@@ -5,16 +5,15 @@
 #include <utility>
 
 // Purpose of this class is to take input, display menus, and bridge the gap between the user interface and the underlying graph. Presentation logic only.
-class presentationWrapper
-{
+class presentationWrapper {
 public:
-	presentationWrapper(graphConfig gc, vehicleConfig vc);
+	presentationWrapper(graphConfig gc, vehicleConfig vc) : g(graph(gc, vehicle(vc))) {};
 	// Contains main code for controlling session by displaying content and taking input.
 	void run();
 private:
 	void displayMenu();
 	// Returns whether coordinates are in map bounds
-	bool areValidCoords(int x, int y) const;
+	bool areValidCoords(int row, int col) const;
 	// Prompts the user to input coordinates for the vehicle to move to.
 	void moveVehicle();
 	// Determines whether a given string represents a valid csv of two integers.

@@ -10,13 +10,6 @@ using std::cin; using std::cout;
 using std::endl; using std::string;
 using std::vector; using std::pair;
 
-presentationWrapper::presentationWrapper(graphConfig gc, vehicleConfig vc) {
-	// Arrange configuration of internal graph and instantiate
-	vehicle v(vc);
-	graph map(gc, v);
-	g = map;
-}
-
 void presentationWrapper::run() {
 	g.display();
 	string input;
@@ -51,17 +44,17 @@ void presentationWrapper::displayMenu() {
 }
 
 
-bool presentationWrapper::areValidCoords(int x, int y) const {
-	if (x >= 0 && x < g.width)
-		if (y >= 0 && y < g.height)
+bool presentationWrapper::areValidCoords(int row, int col) const {
+	if (row >= 0 && row < g.height)
+		if (col >= 0 && col < g.width)
 			return true;
 	return false;
 }
 
 void presentationWrapper::moveVehicle() {
 	string input;
-	cout << "Please enter in the desired coordinates the vehicle should move to, separated by a comma. (e.g 5,2)\n";
 	while (true) {
+		cout << "Please enter in the desired row and column coordinates the vehicle should move to, separated by a comma. (e.g for row 5 column 2 enter 5,2)\n";
 		cin >> input;
 		if (stringIsCoordinateFormat(input)) {
 			pair<int, int> coords = parseCoordinateString(input);
@@ -71,17 +64,15 @@ void presentationWrapper::moveVehicle() {
 				break;
 			}
 		}
-		cout << "Invalid input. Please enter in two comma-separated coordinates (e.g. 5,2).\n";
+		cout << "Invalid input. Coordinates may be out of bounds or in improper format.\n";
 	}
 }
 
-bool presentationWrapper::stringIsCoordinateFormat(const std::string& s) const{
-	if (std::regex_match(s, std::regex("\\d+[,]\\d+")))
-		return true;
-	return false;
+bool presentationWrapper::stringIsCoordinateFormat(const std::string& s) const {
+	return std::regex_match(s, std::regex("\\d+[,]\\d+"));
 }
 
-pair<int, int> presentationWrapper::parseCoordinateString(const std::string& s) const{
+pair<int, int> presentationWrapper::parseCoordinateString(const std::string& s) const {
 	// Split string based on , and parse integers from the resulting two strings
 	std::stringstream stream(s);
 	string splitStr;
@@ -93,7 +84,6 @@ pair<int, int> presentationWrapper::parseCoordinateString(const std::string& s) 
 		int x = std::stoi(splitStrings[0], nullptr);
 		int y = std::stoi(splitStrings[1], nullptr);
 		return pair<int, int>(x, y);
-
 	}
 	throw std::invalid_argument("Input coordinate string did not match proper coordinate format.");
 }
