@@ -2,10 +2,12 @@
 #include "pathResult.h"
 #include "vertice.h"
 #include <iostream>
+#include <iomanip>
 
 using std::cout; using std::endl;
 using std::string; using std::pair;
-using std::vector;
+using std::vector; using std::fixed;
+using std::setprecision; using std::showpoint;
 
 
 moveResult moveResult::successful(const std::vector<std::pair<int, int>>& pathTrace, pathResult res, std::vector<std::vector<vertice>> m)
@@ -27,10 +29,12 @@ void moveResult::displayResult() const {
 	if (traversedCoords.has_value() && pathRes.has_value() && matrix.has_value()) {
 		size_t height = matrix.value().size();
 		size_t width = matrix.value()[0].size();
-
-		cout << "Successfully moved vehicle. \nTime taken: " 
+		
+		size_t prec = cout.precision();
+		cout << fixed << showpoint << setprecision(2)
+			<< "Successfully moved vehicle. \nTime taken: " 
 			<< pathRes.value().timeInH << " hours.\nDistance traveled: " << pathRes.value().distanceInKm 
-			<< " km.\n" << "Fuel used: " << pathRes.value().fuelUsedInL << "L\n";
+			<< " km.\n" << "Fuel used: " << pathRes.value().fuelUsedInL << " L.\n";
 		cout << "Graphical representation of path taken: \n";
 		cout << "Legend: # = Not Traversed R = Road G = Grass.\n";
 		cout << "\n  ";
@@ -51,7 +55,7 @@ void moveResult::displayResult() const {
 				cout << ((traversedCoords.value()[r][c]) ? toString(matrix.value()[r][c].terrain) : "#");
 			}
 		}
-		cout << endl;
+		cout.precision(prec);
 	} else {
 		cout << errorMessage;
 	}
