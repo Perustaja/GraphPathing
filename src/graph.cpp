@@ -111,6 +111,8 @@ void graph::initialize() {
 	matrix = vector<vector<vertice>>(height, vector<vertice>(width, vertice(terrainType::Grass)));
 	addLakes();
 	addRoads();
+	vehicleRow = 0;
+	vehicleCol = 0;
 }
 
 void graph::addRoads() {
